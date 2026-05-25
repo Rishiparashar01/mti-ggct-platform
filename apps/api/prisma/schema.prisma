@@ -1,0 +1,180 @@
+// Database
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  password          String?
+  avatar            String?
+  department        String?
+  semester          Int?
+  status            String   @default("ACTIVE")
+  isEmailVerified   Boolean  @default(false)
+  is2FAEnabled      Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  registrations     Registration[]
+  attendance        Attendance[]
+  certificates      Certificate[]
+  notifications     UserNotification[]
+  achievements      UserAchievement[]
+
+  @@index([email])
+  @@index([status])
+}
+
+model Event {
+  id                String   @id @default(cuid())
+  title             String
+  slug              String   @unique
+  description       String
+  category          String
+  type              String
+  status            String   @default("DRAFT")
+  thumbnail         String?
+  banner            String?
+  venueName         String?
+  venueAddress      String?
+  meetLink          String?
+  startDate         DateTime
+  endDate           DateTime
+  maxSeats          Int
+  registeredCount   Int      @default(0)
+  attendedCount     Int      @default(0)
+  isCertified       Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  registrations     Registration[]
+  attendance        Attendance[]
+  certificates      Certificate[]
+
+  @@index([category])
+  @@index([status])
+  @@index([startDate])
+}
+
+model Registration {
+  id                String   @id @default(cuid())
+  eventId           String
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status            String   @default("REGISTERED")
+  phone             String?
+  department        String?
+  registeredAt      DateTime @default(now())
+  cancelledAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  attendance        Attendance?
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Attendance {
+  id                String   @id @default(cuid())
+  registrationId    String   @unique
+  registration      Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  eventId           String
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkInTime       DateTime
+  checkOutTime      DateTime?
+  status            String   @default("PRESENT")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Certificate {
+  id                String   @id @default(cuid())
+  eventId           String
+  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certificateNo     String   @unique
+  issuedDate        DateTime @default(now())
+  status            String   @default("ISSUED")
+  pdfUrl            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+}
+
+model Notification {
+  id                String   @id @default(cuid())
+  type              String
+  title             String
+  message           String
+  createdAt         DateTime @default(now())
+
+  users             UserNotification[]
+}
+
+model UserNotification {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationId    String
+  notification      Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  isRead            Boolean  @default(false)
+  readAt            DateTime?
+  createdAt         DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Achievement {
+  id                String   @id @default(cuid())
+  name              String   @unique
+  description       String?
+  icon              String?
+  points            Int      @default(0)
+  createdAt         DateTime @default(now())
+
+  users             UserAchievement[]
+}
+
+model UserAchievement {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId     String
+  achievement       Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt        DateTime @default(now())
+
+  @@unique([userId, achievementId])
+}
+
+model AnalyticsEvent {
+  id                String   @id @default(cuid())
+  eventType         String
+  userId            String?
+  page              String?
+  action            String?
+  createdAt         DateTime @default(now())
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([createdAt])
+}
